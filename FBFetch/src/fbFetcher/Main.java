@@ -22,8 +22,8 @@ import com.restfb.exception.FacebookOAuthException;
 import fbFetcher.DBConnect;
 
 public class Main {
-	private static final String MY_APP_ID = "759223277481533";
-	private static final String MY_APP_SECRET = "c9014aa2bf9ab613f63ba9d899ec3eca";
+	private static final String MY_APP_ID = "YOUR APP ID";
+	private static final String MY_APP_SECRET = "YOUR APP SECRET";
 	
 	public static String ts;
 	public static int s_fires = 0, b_fires = 0;
