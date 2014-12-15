@@ -42,7 +42,7 @@ public class Main {
 			//Start Accessing Facebook
 			FacebookClient facebookClient = new DefaultFacebookClient(MY_ACCESS_TOKEN, MY_APP_SECRET);
 			//Enter fb page that u need to get data for:
-			String product = "unilever/posts";
+			String product = "DoveUS/posts";
 	
 			//Begin fetching operations here:
 			Connection<Post> postCon = facebookClient.fetchConnection(product, Post.class, Parameter.with("limit", 50));
@@ -100,28 +100,44 @@ public class Main {
             sharesRequests.add(request);
         }
         
-        //Execute share requests for each post
-        List<BatchResponse> batchResponses = facebookClient.executeBatch(sharesRequests.toArray(new BatchRequest[0]));
-        b_fires++;
-        for (int i = 0; i < batchResponses.size(); i++) {
-        	//Get data in json format
-            String json = batchResponses.get(i).getBody();
-            JsonObject jsonObject = new JsonObject(json);
-            
-            //Total shares:
-            if (jsonObject.has("shares")) {
-            	int count = jsonObject.getJsonObject("shares").getInt("count");            
-	            //-----------------------------------------------------------------------------------------
-	            //TOTAL SHARES HERE
-	            dbc.insertPostCount(posts.get(i).getId(), ts, count, -1, -1, 1);
-	            //-----------------------------------------------------------------------------------------
-            } //else {
-            	//no shares!
-            //}
-            //Users who shared the post is currently unavailable feature :(
-            //OR : http://stackoverflow.com/questions/7748037/list-of-people-who-shared-on-facebook : figure out the link logic!
+        try {
+	        //Execute share requests for each post
+	        List<BatchResponse> batchResponses = facebookClient.executeBatch(sharesRequests.toArray(new BatchRequest[0]));
+	        b_fires++;
+	        for (int i = 0; i < batchResponses.size(); i++) {
+	        	//Get data in json format
+	            String json = batchResponses.get(i).getBody();
+	            JsonObject jsonObject = new JsonObject(json);
+	            
+	            if (jsonObject.has("error")) {
+	            	throw new ConnectionFailException();
+	            }
+	            //Total shares:
+	            if (jsonObject.has("shares")) {
+	            	int count = jsonObject.getJsonObject("shares").getInt("count");            
+		            //-----------------------------------------------------------------------------------------
+		            //TOTAL SHARES HERE
+		            dbc.insertPostCount(posts.get(i).getId(), ts, count, -1, -1, 1);
+		            //-----------------------------------------------------------------------------------------
+	            } //else {
+	            	//no shares!
+	            //}
+	            //Users who shared the post is currently unavailable feature :(
+	            //OR : http://stackoverflow.com/questions/7748037/list-of-people-who-shared-on-facebook : figure out the link logic!
+	        }
         }
-        dbc.close();
+        catch (ConnectionFailException cfe) {
+    		System.out.println("Error in connection for fetching shares! Retrying!!");
+    		try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    		insertPostShares(facebookClient, posts);
+    	}
+        finally {
+        	dbc.close();        	
+        }
 	}
 
 
@@ -138,43 +154,56 @@ public class Main {
             likeRequests.add(request);
         }
         
-        //Execute like requests for each post
-        List<BatchResponse> batchResponses = facebookClient.executeBatch(likeRequests.toArray(new BatchRequest[0]));
-        b_fires++;
-        for (int i = 0; i < batchResponses.size(); i++) {
-        	//Get data in json format
-            String json = batchResponses.get(i).getBody();
-            JsonObject jsonObject = new JsonObject(json);
-            
-            //Total likes:
-            if (!jsonObject.has("summary")) {
-            	System.out.println(jsonObject);
-            	System.exit(0);
-            }
-            int count = jsonObject.getJsonObject("summary").getInt("total_count");
-            
-            //-----------------------------------------------------------------------------------------
-            //TOTAL LIKES HERE
-            dbc.insertPostCount(posts.get(i).getId(), ts, -1, count, -1, 2);
-            //-----------------------------------------------------------------------------------------
-            
-            if (count !=0) {
-	            //Array of users how gave likes:
-	            for (int j =0; j < jsonObject.getJsonArray("data").length(); j++) {
-	            	//-----------------------------------------------------------------------------------------
-	            	//USER DETAILS OF LIKE HERE
-	            	dbc.insertFan(jsonObject.getJsonArray("data").getJsonObject(j), "like");
-	            	dbc.insertPostLike(posts.get(i).getId(), jsonObject.getJsonArray("data").getJsonObject(j), ts);
-	            	//-----------------------------------------------------------------------------------------
-	            }
+        try {
+	        //Execute like requests for each post
+	        List<BatchResponse> batchResponses = facebookClient.executeBatch(likeRequests.toArray(new BatchRequest[0]));
+	        b_fires++;
+	        for (int i = 0; i < batchResponses.size(); i++) {
+        	
+	        	//Get data in json format
+	            String json = batchResponses.get(i).getBody();
+	            JsonObject jsonObject = new JsonObject(json);
 	            
-	            //See if there is another list of likes to acquire, then loop
-	            if(jsonObject.getJsonObject("paging").has("next")) {            	
-	            	getLikes(jsonObject.getJsonObject("paging").getString("next"), posts.get(i).getId(), facebookClient, dbc, 1);            	
+	            //Total likes:
+	            if (!jsonObject.has("summary")) {
+	            	throw new ConnectionFailException();
 	            }
-            }            
-        }
-        dbc.close();
+	            int count = jsonObject.getJsonObject("summary").getInt("total_count");
+	            
+	            //-----------------------------------------------------------------------------------------
+	            //TOTAL LIKES HERE
+	            dbc.insertPostCount(posts.get(i).getId(), ts, -1, count, -1, 2);
+	            //-----------------------------------------------------------------------------------------
+	            
+	            if (count !=0) {
+		            //Array of users how gave likes:
+		            for (int j =0; j < jsonObject.getJsonArray("data").length(); j++) {
+		            	//-----------------------------------------------------------------------------------------
+		            	//USER DETAILS OF LIKE HERE
+		            	dbc.insertFan(jsonObject.getJsonArray("data").getJsonObject(j), "like");
+		            	dbc.insertPostLike(posts.get(i).getId(), jsonObject.getJsonArray("data").getJsonObject(j), ts);
+		            	//-----------------------------------------------------------------------------------------
+		            }
+		            
+		            //See if there is another list of likes to acquire, then loop
+		            if(jsonObject.getJsonObject("paging").has("next")) {            	
+		            	getLikes(jsonObject.getJsonObject("paging").getString("next"), posts.get(i).getId(), facebookClient, dbc, 1);            	
+		            }
+	            }
+	        }	        	
+	    }
+        catch (ConnectionFailException cfe) {
+    		System.out.println("Error in connection for fetching likes! Retrying!!");
+    		try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    		insertPostLikes(facebookClient, posts);
+    	}
+        finally {
+        	dbc.close();        	
+        }        
 	}
 	
 	
@@ -231,58 +260,74 @@ public class Main {
         }
         
         //Execute comment requests for each post
-        List<BatchResponse> batchResponses = facebookClient.executeBatch(commentRequests.toArray(new BatchRequest[0]));
-        b_fires++;
-        for (int i = 0; i < batchResponses.size(); i++) {
-        	//Get data in json format
-            String json = batchResponses.get(i).getBody();
-            JsonObject jsonObject = new JsonObject(json);
-            
-           //Check if there are any comments available:
-            if (jsonObject.has("summary")) {
-            	 //Total comments:
-            	int count = jsonObject.getJsonObject("summary").getInt("total_count");
-            
-	            //-----------------------------------------------------------------------------------------
-	            //TOTAL COMMENTS HERE:
-            	dbc.insertPostCount(posts.get(i).getId(), ts, -1, -1, count, 3);
-	            //-----------------------------------------------------------------------------------------
+        try {
+	        List<BatchResponse> batchResponses = facebookClient.executeBatch(commentRequests.toArray(new BatchRequest[0]));
+	        b_fires++;
+	        for (int i = 0; i < batchResponses.size(); i++) {
+	        	//Get data in json format
+	            String json = batchResponses.get(i).getBody();
+	            JsonObject jsonObject = new JsonObject(json);
 	            
-            	//Array of comments data:
-	            if (count > 0) {
-	            	for (int j =0; j < jsonObject.getJsonArray("data").length(); j++) {
-	            		processComments(jsonObject.getJsonArray("data").getJsonObject(j), posts.get(i).getId(), facebookClient, dbc);
-	            	}
-	            	
-		            //See if there is another list of comments to acquire, then loop
-		            if(jsonObject.has("paging") && jsonObject.getJsonObject("paging").has("next")) {
-		            	String nextURL2 = jsonObject.getJsonObject("paging").getString("next");
-		            	Connection<JsonObject> commentsnext = null;
-		            	do {
-		            		try {
-			            		commentsnext = facebookClient.fetchConnectionPage(nextURL2, JsonObject.class);
-			            		s_fires++;
-			            		//Extended array of users who have written comments
-			            		for (int k = 0; k < commentsnext.getData().size(); k++){
-			            			processComments(commentsnext.getData().get(k), posts.get(i).getId(), facebookClient, dbc);
+	           //Check if there are any comments available:
+	            if (jsonObject.has("summary")) {
+	            	 //Total comments:
+	            	int count = jsonObject.getJsonObject("summary").getInt("total_count");
+	            
+		            //-----------------------------------------------------------------------------------------
+		            //TOTAL COMMENTS HERE:
+	            	dbc.insertPostCount(posts.get(i).getId(), ts, -1, -1, count, 3);
+		            //-----------------------------------------------------------------------------------------
+		            
+	            	//Array of comments data:
+		            if (count > 0) {
+		            	for (int j =0; j < jsonObject.getJsonArray("data").length(); j++) {
+		            		processComments(jsonObject.getJsonArray("data").getJsonObject(j), posts.get(i).getId(), facebookClient, dbc);
+		            	}
+		            	
+			            //See if there is another list of comments to acquire, then loop
+			            if(jsonObject.has("paging") && jsonObject.getJsonObject("paging").has("next")) {
+			            	String nextURL2 = jsonObject.getJsonObject("paging").getString("next");
+			            	Connection<JsonObject> commentsnext = null;
+			            	do {
+			            		try {
+				            		commentsnext = facebookClient.fetchConnectionPage(nextURL2, JsonObject.class);
+				            		s_fires++;
+				            		//Extended array of users who have written comments
+				            		for (int k = 0; k < commentsnext.getData().size(); k++){
+				            			processComments(commentsnext.getData().get(k), posts.get(i).getId(), facebookClient, dbc);
+				            		}
+				            		nextURL2 = commentsnext.getNextPageUrl();
+			            		} catch (FacebookOAuthException e){
+			            			if (e.getErrorCode() == 2)
+			            				System.out.println("FB error!! Too many calls, so pls wait little longer :(");
+			            			try {
+			        					Thread.sleep(5000);
+			        				} catch (InterruptedException e1) {
+			        					System.out.println("Process Interupted!!");
+			        					e1.printStackTrace();
+			        				}
 			            		}
-			            		nextURL2 = commentsnext.getNextPageUrl();
-		            		} catch (FacebookOAuthException e){
-		            			if (e.getErrorCode() == 2)
-		            				System.out.println("FB error!! Too many calls, so pls wait little longer :(");
-		            			try {
-		        					Thread.sleep(5000);
-		        				} catch (InterruptedException e1) {
-		        					System.out.println("Process Interupted!!");
-		        					e1.printStackTrace();
-		        				}
-		            		}
-		            	} while(commentsnext.getNextPageUrl() != null);
+			            	} while(commentsnext.getNextPageUrl() != null);
+			            }
 		            }
+	            } else {
+	            	System.out.println(jsonObject);
+	            	throw new ConnectionFailException();
 	            }
-            }
+	        }
         }
-        dbc.close();
+        catch (ConnectionFailException cfe) {
+    		System.out.println("Error in connection for fetching comments! Retrying!!");
+    		try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    		insertPostComments(facebookClient, posts);
+    	}
+        finally {
+        	dbc.close();        	
+        }
 	}
 
 

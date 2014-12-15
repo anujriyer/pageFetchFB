@@ -227,7 +227,7 @@ public class DBConnect {
 			} else {
 				switch (flag) {
 					case 1: sql = String.format("UPDATE comment_count_table "
-							  + "SET likes_count = %s "
+							  + "SET like_count = %s "
 							  + "WHERE comment_id = '%s' AND ts_comment = '%s'", 
 							  l_str, comment_id, ts);
 							s1.executeUpdate(sql);
@@ -310,8 +310,8 @@ public class DBConnect {
 								  rep_id, ts, l_str);
 				s1.executeUpdate(sql);
 			} else {
-				System.out.println("Odd time match... updating reply like count table anyways......");
-				sql = String.format("UPDATE reply_count_table SET likes_count = %s "
+				System.out.println("Recursion!! Updating reply like count table anyways......");
+				sql = String.format("UPDATE reply_count_table SET like_count = %s "
 							  	  + "WHERE reply_id = '%s' AND ts_reply = '%s'", 
 							  	  l_str, rep_id, ts);
 				s1.executeUpdate(sql);							

@@ -1,3 +1,15 @@
+DROP TABLE reply_likes_table;
+DROP TABLE reply_count_table;
+DROP TABLE reply_table;
+DROP TABLE comment_likes_table;
+DROP TABLE comment_count_table;
+DROP TABLE comments_table;
+DROP TABLE post_likes_table;
+DROP TABLE post_counts_table;
+DROP TABLE page_fans;
+DROP TABLE post_table;
+
+
 CREATE TABLE post_table(
   post_id character varying(35) NOT NULL,
   created_at timestamp with time zone,
