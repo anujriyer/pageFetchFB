@@ -22,8 +22,8 @@ import com.restfb.exception.FacebookOAuthException;
 import fbFetcher.DBConnect;
 
 public class Main {
-	private static final String MY_APP_ID = "YOUR APP ID";
-	private static final String MY_APP_SECRET = "YOUR APP SECRET";
+	private static final String MY_APP_ID = "759223277481533";
+	private static final String MY_APP_SECRET = "c9014aa2bf9ab613f63ba9d899ec3eca";
 	
 	public static String ts;
 	public static int s_fires = 0, b_fires = 0;
@@ -75,7 +75,7 @@ public class Main {
 			if (e.getErrorCode() == 2)
 				System.out.println("FB error!! Too many calls made to facebook. Please restart program :(");
 			else
-				System.out.println("Unknown oauth error - " + e.getErrorMessage());
+				System.out.println("Oauth error " + e.getErrorCode() + " - " + e.getErrorMessage());
 		}
 	}
 	
@@ -311,8 +311,9 @@ public class Main {
 			            }
 		            }
 	            } else {
-	            	System.out.println(jsonObject);
-	            	throw new ConnectionFailException();
+	            	if (jsonObject.has("error")) {
+	            		throw new ConnectionFailException();
+	            	}
 	            }
 	        }
         }
