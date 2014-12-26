@@ -19,7 +19,7 @@ import com.restfb.batch.BatchRequest.BatchRequestBuilder;
 import com.restfb.exception.FacebookNetworkException;
 import com.restfb.exception.FacebookOAuthException;
 
-import fbFetcher.DBConnect;
+import fbFetcher.FBDBConnect;
 
 public class Main {
 	private static final String MY_APP_ID = "759223277481533";
@@ -40,9 +40,9 @@ public class Main {
 			String MY_ACCESS_TOKEN = accessToken.getAccessToken();
 			
 			//Start Accessing Facebook
-			FacebookClient facebookClient = new DefaultFacebookClient(MY_ACCESS_TOKEN, MY_APP_SECRET);
+			FacebookClient facebookClient = new DefaultFacebookClient(MY_ACCESS_TOKEN);//, MY_APP_SECRET);
 			//Enter fb page that u need to get data for:
-			String product = "DoveUS/posts";
+			String product = "lipton/posts";
 	
 			//Begin fetching operations here:
 			Connection<Post> postCon = facebookClient.fetchConnection(product, Post.class, Parameter.with("limit", 50));
@@ -81,7 +81,7 @@ public class Main {
 	
 	
 	private static void insertPostDetails(List<Post> posts) {
-		DBConnect dbc = new DBConnect();
+		FBDBConnect dbc = new FBDBConnect();
 		for (Post post : posts) {
 			dbc.insertPost(post);
 		}
@@ -90,7 +90,7 @@ public class Main {
 
 	
 	private static void insertPostShares(FacebookClient facebookClient, List<Post> posts) {
-		DBConnect dbc = new DBConnect();
+		FBDBConnect dbc = new FBDBConnect();
 		List<BatchRequest> sharesRequests = new ArrayList<>();
 		
 		//First Lets See each post how much shares were made
@@ -142,7 +142,7 @@ public class Main {
 
 
 	private static void insertPostLikes(FacebookClient facebookClient, List<Post> posts) {
-		DBConnect dbc = new DBConnect();
+		FBDBConnect dbc = new FBDBConnect();
 		List<BatchRequest> likeRequests = new ArrayList<>();
 		
 		//First Lets See each post likes and who all gave likes
@@ -168,7 +168,12 @@ public class Main {
 	            if (!jsonObject.has("summary")) {
 	            	throw new ConnectionFailException();
 	            }
-	            int count = jsonObject.getJsonObject("summary").getInt("total_count");
+	            
+	            int count;
+	            if (jsonObject.getJsonObject("summary").getString("total_count").equals("null"))
+	            	count = 0;
+	            else
+	            	count = jsonObject.getJsonObject("summary").getInt("total_count");
 	            
 	            //-----------------------------------------------------------------------------------------
 	            //TOTAL LIKES HERE
@@ -207,7 +212,7 @@ public class Main {
 	}
 	
 	
-	private static void getLikes(String nextURL, String id, FacebookClient facebookClient,	DBConnect dbc, int flag) {
+	private static void getLikes(String nextURL, String id, FacebookClient facebookClient,	FBDBConnect dbc, int flag) {
 		Connection<JsonObject> likeposts;
     	do {
     		try {
@@ -246,7 +251,7 @@ public class Main {
 
 
 	private static void insertPostComments(FacebookClient facebookClient, List<Post> posts) {
-		DBConnect dbc = new DBConnect();	
+		FBDBConnect dbc = new FBDBConnect();	
 		List<BatchRequest> commentRequests = new ArrayList<>();
 		
 		//First Lets See each post comments
@@ -332,7 +337,7 @@ public class Main {
 	}
 
 
-	private static void processComments(JsonObject jO, String postId, FacebookClient facebookClient, DBConnect dbc) {
+	private static void processComments(JsonObject jO, String postId, FacebookClient facebookClient, FBDBConnect dbc) {
 		String c_id = jO.getString("id");
     	
     	//-----------------------------------------------------------------------------------------
@@ -419,7 +424,7 @@ public class Main {
 	}
 
 
-	private static void processReplies(String c_id, JsonObject jsonObject, DBConnect dbc, FacebookClient fbc) {
+	private static void processReplies(String c_id, JsonObject jsonObject, FBDBConnect dbc, FacebookClient fbc) {
 		//-----------------------------------------------------------------------------------------
         //COMMENT REPLIES DATA HERE:
 		dbc.insertFan(jsonObject.getJsonObject("from"), "reply");
