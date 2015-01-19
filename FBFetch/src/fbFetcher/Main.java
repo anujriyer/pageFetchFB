@@ -42,17 +42,19 @@ public class Main {
 			//Start Accessing Facebook
 			FacebookClient facebookClient = new DefaultFacebookClient(MY_ACCESS_TOKEN);//, MY_APP_SECRET);
 			//Enter fb page that u need to get data for:
-			String product = "lipton/posts";
-	
+			String product = "Axe";
+						
 			//Begin fetching operations here:
-			Connection<Post> postCon = facebookClient.fetchConnection(product, Post.class, Parameter.with("limit", 50));
+			JsonObject pageData = facebookClient.fetchObject(product, JsonObject.class);
+	        insertPageDetails(pageData);
+			Connection<Post> postCon = facebookClient.fetchConnection(product+"/posts", Post.class, Parameter.with("limit", 50));
 			s_fires++;
 			List<Post> posts = postCon.getData();
 	        long next1=-1;
 	        System.out.println("Fetch for " + product + " started!");
 	        
 	        do {
-	        	insertPostDetails(posts);
+	        	insertPostDetails(posts, product);
 	        	insertPostShares(facebookClient, posts);
 	        	insertPostLikes(facebookClient, posts);
 	        	insertPostComments(facebookClient, posts);
@@ -80,10 +82,17 @@ public class Main {
 	}
 	
 	
-	private static void insertPostDetails(List<Post> posts) {
+	private static void insertPageDetails(JsonObject pageData) {
+		FBDBConnect dbc = new FBDBConnect();
+		dbc.insertPageData(pageData, ts);
+		dbc.close();
+	}
+
+
+	private static void insertPostDetails(List<Post> posts, String page_name) {
 		FBDBConnect dbc = new FBDBConnect();
 		for (Post post : posts) {
-			dbc.insertPost(post);
+			dbc.insertPost(post, page_name);
 		}
 		dbc.close();
 	}

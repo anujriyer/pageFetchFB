@@ -43,8 +43,29 @@ public class FBDBConnect {
 			e.printStackTrace();
 		}
 	}
+
+	public void insertPageData(JsonObject pg, String ts) {
+		String sql = "";
+		try {			
+			Statement s1 = connection.createStatement();
+			
+			sql = String.format("SELECT * FROM page_table WHERE page_id = '%s' AND ts_page = '%s'", pg.getString("id"), ts);
+			ResultSet rs = s1.executeQuery(sql);
+			if (!rs.isBeforeFirst()) {
+				sql = String.format("INSERT INTO page_table VALUES (%s, '%s', '%s', %s, %s, %s)", 
+						pg.getString("id"), ts, pg.getString("name"), pg.getString("likes"), pg.getString("talking_about_count"), pg.getString("were_here_count"));
+				s1.executeUpdate(sql);				
+			} else {
+				//Repeat data!!
+			}
+			s1.close();
+		} catch (SQLException e) {
+			System.out.println("Error executing statement: " + sql);
+			e.printStackTrace();
+		}
+	}
 	
-	public void insertPost(Post post){
+	public void insertPost(Post post, String page_name){
 		String sql = "";
 		try {			
 			Statement s1 = connection.createStatement();
@@ -66,8 +87,8 @@ public class FBDBConnect {
 					story = "'" + post.getStory().replace("'", "") + "'";
 				}
 				
-				sql = String.format("INSERT INTO post_table VALUES ('%s', '%s', %s, %s, '%s', '%s', '%s', %s)", 
-						post.getId(), post.getCreatedTime(), post.getFrom().getId(), msg, post.getType(), post.getStatusType(),	post.getTo(), story);
+				sql = String.format("INSERT INTO post_table VALUES ('%s', '%s', %s, %s, '%s', '%s', '%s', %s, '%s')", 
+						post.getId(), post.getCreatedTime(), post.getFrom().getId(), msg, post.getType(), post.getStatusType(),	post.getTo(), story, page_name);
 				s1.executeUpdate(sql);				
 			}					
 			s1.close();
