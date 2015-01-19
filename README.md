@@ -9,4 +9,4 @@ Requirements:
  - RestFB jar file
  - your DB's jdbc jar file (in my case, postgreSQL)
 
-Edit 'product' string to the facebook page name - e.g. for coca cola edit to "cocacola\posts"
+Edit 'product' string to the facebook page name - e.g. for coca cola edit to "cocacola"
