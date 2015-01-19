@@ -10,6 +10,17 @@ DROP TABLE page_fans;
 DROP TABLE post_table;
 
 
+CREATE TABLE page_table
+(
+  page_id character varying(35) NOT NULL,
+  ts_page timestamp without time zone NOT NULL,
+  page_name character varying(50),
+  likes_count bigint,
+  talking_count integer,
+  were_here_count integer,
+  CONSTRAINT pt_pk PRIMARY KEY (page_id, ts_page)
+);
+
 CREATE TABLE post_table(
   post_id character varying(35) NOT NULL,
   created_at timestamp with time zone,
@@ -19,6 +30,7 @@ CREATE TABLE post_table(
   post_status_type character varying(40),
   to_user_id text,
   story text,
+  page_name character varying(50),
   CONSTRAINT post_table_pkey PRIMARY KEY (post_id));
 
 
@@ -57,6 +69,7 @@ CREATE TABLE comments_table (
   user_id character varying(35),
   message text,
   created_at timestamp with time zone,
+  msg_sentiment integer,
   CONSTRAINT comments_table_pkey PRIMARY KEY (comment_id),
   CONSTRAINT comment_fk1 FOREIGN KEY (post_id)
       REFERENCES post_table (post_id),
@@ -91,6 +104,7 @@ CREATE TABLE reply_table(
   user_id character varying(35),
   message text,
   created_at timestamp with time zone,
+  msg_sentiment integer,
   CONSTRAINT reply_table_pkey PRIMARY KEY (reply_id),
   CONSTRAINT rt_fk1 FOREIGN KEY (comment_id)
       REFERENCES comments_table (comment_id),
